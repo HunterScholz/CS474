@@ -1,0 +1,7 @@
+1. Since each job has a length of 200, I predict that the Response for each will start at 0 and then increase by 200 each time, and then the Turnaround will start at 200 and increase by 200 after each job. The averages will be 200 for Response and Turnaround. After checking with `-c`, my predictions were correct.
+2. Predictions; Job 0: R-0, T-100 | Job 1: R-100, T-300 | Job 2: R-300, T-600. Average will be R-133.33, T-333.33. Predictions were correct.
+3. Though each job is the same length, I'm assuming the RR will let them run faster. I will predict an average Runtime and Turnaround off 100. My prediction was not accurate, each job started 1 unit after each other, so the average Runtime was 1, and the turnaround was 599.
+4. FIFO and SJF deliver the same turnaround times when the workloads are of the same length or have the smallest lengths first.
+5. SJF delivers the same turnaround time as RR when the RR's quantum length is the same as the SJF's average turnaround, and the workloads are also shared.
+6. The Response only increases when two or more workloads increase. When only one workload increases, reguardless of which one, the response time is unchanged.
+7. As the quantum length increases, the Response increases by the same amount to a maximum of the average workload. Given N jobs with RR and quatum length Q, the response increases by Q/2 * N-1.
