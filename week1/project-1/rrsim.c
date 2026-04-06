@@ -15,7 +15,8 @@
 struct process {
     int pid;
     int time_awake_remaining;
-    int time_to_sleep;
+    int time_asleep_remaining;
+    int instructions[MAX_PROG_LEN+1];
 };
 
 struct process table[MAX_PROCS];
@@ -26,6 +27,7 @@ void init_proc_table(void)
     for (int i = 0; i < MAX_PROCS; i++) {
         table[i].pid = i;
         table[i].time_awake_remaining = 0;
+        table[i].time_asleep_remaining = 0;
     }
 }
 
@@ -33,7 +35,15 @@ void init_proc_table(void)
 void parse_command_line(int argc, char **argv)
 {
     for (int i = 0; i < argc-1; i++){
-        table[i].time_awake_remaining = atoi(argv[i+1]);
+
+        char *token;
+        int j = 0;
+
+        if ((token = strtok(argv[i], ",")) != NULL) do {
+            table[i].instructions[j++] = atoi(token);
+        } while ((token = strtok(NULL, ",")) != NULL);
+
+        table[i].time_awake_remaining = table[i].instructions[0];
     }
 }
 
