@@ -6,7 +6,8 @@
 
 #define MAX_THREADS 20
 
-// TODO Make global lock variable(s) here.
+atomic_int next_ticket = 0;
+atomic_int now_serving = 0;
 
 /**
  * Acquire the lock.
@@ -15,19 +16,19 @@
  * required output.
  */
 void lock(int tid) {
-    // TODO
+    int ticket = atomic_fetch_add(&next_ticket, 1);
 
-    // Print out the number of the ticket that was just grabbed:
-    //printf("Thread %d: Grabbed ticket %d\n", tid, /* ... */);
+    printf("Thread %d: Grabbed ticket %d\n", tid, ticket);
 
-    // TODO
+    // Spin
+    while(now_serving != ticket);
 }
 
 /**
  * Unlock the lock.
  */
 void unlock(void) {
-    // TODO
+    atomic_fetch_add(&now_serving, 1);
 }
 
 /**
