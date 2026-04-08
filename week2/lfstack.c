@@ -49,7 +49,8 @@ void push(struct stack *s, int val)
 
     new->next = old_top;
 
-    while(atomic_compare_exchange_weak(&(s->top), &old_top, new));
+    while(atomic_compare_exchange_weak(&(s->top), &old_top, new))
+        new->next = old_top;
 }
 
 /**
@@ -60,7 +61,16 @@ void push(struct stack *s, int val)
 int pop(struct stack *s, int *value)
 {
     // TODO for challenge Part 2
-    return 0;
+    struct node *old_top = s->top;
+    if (old_top == NULL)
+        return 0;
+
+    while(!atomic_compare_exchange_weak(&(s->top), &old_top, old_top->next));
+
+    *value = old_top->data;
+
+    free(old_top);
+    return 1;
 }
 
 /**
@@ -98,3 +108,7 @@ int main(void)
         print_stack(s);
     }
 }
+
+// 1. The ABA problem can be counteracted by preventing the reuse of memory while it is being used,
+// or tagging pointers that are in-use.
+// 2. It can be prevented by atomically marking the pointers as hazardous before dereferencing.
