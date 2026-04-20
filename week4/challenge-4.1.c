@@ -8,9 +8,10 @@ static int *global;
 int main(void){
 
     int *local;
-    int *heap = (int *)malloc(sizeof(int));
+    int *heap = (int*)malloc(sizeof(int));
 
-    printf("Global: %p\n", (void*)&global);
     printf("Local: %p\n", (void*)&local);
-    printf("Heap: %p\n", (void*)&heap);
+    printf("Global: %p\n", (void*)&global);
+    printf("Heap: %p\n", heap);
+    printf("Main: %p\n", (void*)&main);
 }
