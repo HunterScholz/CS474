@@ -15,3 +15,10 @@ int main(void){
     printf("Heap: %p\n", heap);
     printf("Main: %p\n", (void*)&main);
 }
+
+/*
+Local: 0x7fffc20e6c48
+Global: 0x57467ab2c018
+Heap: 0x5746afe6f2a0
+Main: 0x57467ab29189
+*/
