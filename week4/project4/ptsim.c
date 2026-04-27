@@ -46,12 +46,38 @@ unsigned char get_page_table(int proc_num)
 //
 // This includes the new process page table and page_count data pages.
 //
+
+int allocate_first_free_page(){
+    for(int i = 0; i < 64; i++){
+        if(mem[i] == 0){
+            mem[i] = 1;
+            return i;
+        }
+    }
+    return -1;
+}
+
 void new_process(int proc_num, int page_count)
 {
-    (void)proc_num;   // remove after implementation
-    (void)page_count; // remove after implementation
+    // Allocate Page Table
+    int page_num = allocate_first_free_page();
+    if(page_num == -1){
+        printf("OOM: proc %d: page table\n", proc_num);
+        return;
+    }
 
-    // TODO
+    mem[proc_num + PTP_OFFSET] = page_num;
+
+    // Allocate Additional Pages of Data
+    for(int i = 0; i < page_count; i++){
+        int data_page = allocate_first_free_page();
+        if (data_page == -1){
+            printf("OOM: proc %d: data page\n", proc_num);
+            return;
+        }
+
+        mem[page_num * PAGE_SIZE + i] = data_page;
+    }
 }
 
 //
@@ -115,11 +141,16 @@ int main(int argc, char *argv[])
         if (strcmp(argv[i], "pfm") == 0) {
             print_page_free_map();
         }
+
         else if (strcmp(argv[i], "ppt") == 0) {
             int proc_num = atoi(argv[++i]);
             print_page_table(proc_num);
         }
-
-        // TODO: more command line arguments
+        
+        else if (strcmp(argv[i], "np") == 0) {
+            int proc_num = atoi(argv[++i]);
+            int page_count = atoi(argv[++i]);
+            new_process(proc_num, page_count);
+        }
     }
 }
