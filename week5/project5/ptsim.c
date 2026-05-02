@@ -16,16 +16,14 @@ unsigned char mem[MEM_SIZE];
 //
 // Convert a page,offset into an address
 //
-int get_address(int page, int offset)
-{
+int get_address(int page, int offset){
     return (page << PAGE_SHIFT) | offset;
 }
 
 //
 // Initialize RAM
 //
-void initialize_mem(void)
-{
+void initialize_mem(void){
     memset(mem, 0, MEM_SIZE);
 
     int zpfree_addr = get_address(0, 0);
@@ -35,8 +33,7 @@ void initialize_mem(void)
 //
 // Get the page table page for a given process
 //
-unsigned char get_page_table(int proc_num)
-{
+unsigned char get_page_table(int proc_num){
     int ptp_addr = get_address(0, PTP_OFFSET + proc_num);
     return mem[ptp_addr];
 }
@@ -49,16 +46,18 @@ unsigned char get_page_table(int proc_num)
 
 int allocate_first_free_page(){
     for(int i = 0; i < 64; i++){
-        if(mem[i] == 0){
-            mem[i] = 1;
+        int addr = get_address(0, i);
+
+        if(mem[addr] == 0){
+            mem[addr] = 1;
             return i;
         }
     }
     return -1;
 }
 
-void new_process(int proc_num, int page_count)
-{
+
+void new_process(int proc_num, int page_count){
     // Allocate Page Table
     int page_num = allocate_first_free_page();
     if(page_num == -1){
@@ -78,6 +77,69 @@ void new_process(int proc_num, int page_count)
 
         mem[page_num * PAGE_SIZE + i] = data_page;
     }
+}
+
+
+void free_page(int pnum){
+    if(pnum == 0)
+        return;
+
+    int addr = get_address(0, pnum);
+    mem[addr] = 0;
+}
+
+
+void kill_process(int proc_num){
+    // Get Page Table Number
+    int pt_num = get_page_table(proc_num);
+    if(pt_num == 0){
+        printf("OOM: proc %d: page table\n", proc_num);
+        return;
+    }
+
+    // Kill Pages
+    for(int i = 0; i < PAGE_COUNT; i++){
+        int addr = get_address(pt_num, i);
+        int page = mem[addr];
+
+        if(page != 0){
+            free_page(page);
+        }
+    }
+
+    // Kill Page Table
+    free_page(pt_num);
+    int ptaddr = get_address(0, PTP_OFFSET + proc_num);
+    mem[ptaddr] = 0;
+}
+
+
+int vaddr_to_paddr(int proc_num, int vaddr){
+    int vpage = vaddr >> 8;
+    int offset = vaddr & 255;
+
+    int pt_page = get_page_table(proc_num);
+    int pt_addr = get_address(pt_page, vpage);
+
+    int ppage = mem[pt_addr];
+    return get_address(ppage, offset);
+}
+
+
+void store_value(int proc_num, int vaddr, int val){
+    int addr = vaddr_to_paddr(proc_num, vaddr);
+    mem[addr] = val;
+
+    printf("Store proc %d: %d => %d, value=%d\n", proc_num, vaddr, addr, val);
+}
+
+
+// lb n a: For process n, get the value at virtual address a.
+void load_value(int proc_num, int vaddr){
+    int addr = vaddr_to_paddr(proc_num, vaddr);
+    int val = mem[addr];
+
+    printf("Load proc %d: %d => %d, value=%d\n", proc_num, vaddr, addr, val);
 }
 
 //
@@ -151,6 +213,24 @@ int main(int argc, char *argv[])
             int proc_num = atoi(argv[++i]);
             int page_count = atoi(argv[++i]);
             new_process(proc_num, page_count);
+        }
+
+        else if (strcmp(argv[i], "kp") == 0) {
+            int proc_num = atoi(argv[++i]);
+            kill_process(proc_num);
+        }
+
+        else if (strcmp(argv[i], "sb") == 0) {
+            int proc_num = atoi(argv[++i]);
+            int addr = atoi(argv[++i]);
+            int value = atoi(argv[++i]);
+            store_value(proc_num, addr, value);
+        }
+
+        else if (strcmp(argv[i], "lb") == 0) {
+            int proc_num = atoi(argv[++i]);
+            int addr = atoi(argv[++i]);
+            load_value(proc_num, addr);
         }
     }
 }
