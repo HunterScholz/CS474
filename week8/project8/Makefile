@@ -1,5 +1,5 @@
 all: libvvsfs.a testfs
-OBJS = image.o block.o free.o inode.o
+OBJS = image.o block.o free.o inode.o pack.o
 
 %.o: %.c
 	gcc -Wall -Wextra -g -DCTEST_ENABLE -c $< -o $@
