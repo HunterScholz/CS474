@@ -2,6 +2,8 @@
 #include "block.h"
 #include "free.h"
 #include "inode.h"
+#include "dir.h"
+#include "ls.h"
 
 #include "ctest.h"
 #include <string.h>
@@ -163,6 +165,39 @@ void test_ipush(void){
     CTEST_ASSERT(out.ref_count == 0, "refcount reaches zero");
 }
 
+void test_mkfs(void){
+    mkfs();
+    struct inode *root = iget(0);
+
+    CTEST_ASSERT(root != NULL, "root inode exists");
+    CTEST_ASSERT(root->flags == 2, "root is directory");
+    CTEST_ASSERT(root->size == 64, "root size is accurate");
+
+    iput(root);
+}
+
+void test_dir(void){
+    mkfs();
+
+    struct directory *dir = directory_open(0);
+    struct directory_entry ent;
+
+    CTEST_ASSERT(dir != NULL, "root inode opens");
+    CTEST_ASSERT(dir->offset == 0, "offset starts at 0");
+
+    CTEST_ASSERT(directory_get(dir, &ent) == 0, "read first entry");
+    CTEST_ASSERT(strcmp(ent.name, ".") == 0, "first entry is .");
+
+    CTEST_ASSERT(dir->offset == DIR_ENTRY_SIZE, "offset advanced");
+
+    CTEST_ASSERT(directory_get(dir, &ent) == 0, "read second entry");
+    CTEST_ASSERT(strcmp(ent.name, "..") == 0, "second entry is ..");
+
+    CTEST_ASSERT(directory_get(dir, &ent) == -1, "reaches the end of directory");
+
+    directory_close(dir);
+}
+
 int main(void){
     CTEST_VERBOSE(1);
 
@@ -177,6 +212,10 @@ int main(void){
     test_rw_inode();
     test_iget();
     test_ipush();
+
+    // ls();
+    test_mkfs();
+    test_dir();
 
     // Finish Testing
     CTEST_RESULTS();
