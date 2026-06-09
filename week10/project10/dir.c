@@ -4,11 +4,13 @@
 #include "block.h"
 #include "inode.h"
 #include "pack.h"
+#include "dirbasename.h"
 
 #define SUPERBLOCK_BLOCK 0
 #define INODE_MAP_BLOCK  1
 #define FREE_MAP_BLOCK   2
 #define DIR_ENTRY_SIZE 32
+#define ROOT_INODE_NUM 0
 
 struct directory {
     struct inode *inode;
@@ -91,4 +93,85 @@ int directory_get(struct directory *dir, struct directory_entry *ent){
 void directory_close(struct directory *d){
     iput(d->inode);
     free(d);
+}
+
+struct inode *namei(char *path){
+    if(strcmp(path, "/") == 0)
+        return iget(ROOT_INODE_NUM);
+
+    struct directory *dir = directory_open(ROOT_INODE_NUM);
+    if(dir == NULL)
+        return NULL;
+
+    char *target = path+1;
+    struct directory_entry ent;
+
+    while(directory_get(dir, &ent) == 0){
+        if(strcmp(ent.name, target) == 0){
+            struct inode *inode = iget(ent.inode_num);
+            directory_close(dir);
+            return inode;
+        }
+    }
+
+    directory_close(dir);
+    return NULL;
+}
+
+int directory_make(char *path){
+    char dirpath[DIR_ENTRY_SIZE];
+    char dirname[DIR_ENTRY_SIZE];
+
+    get_dirname(path, dirpath);
+    get_basename(path, dirname);
+
+    struct inode *parent = namei(dirpath);
+    struct inode *new_inode = ialloc();
+
+    if(new_inode == NULL){
+        iput(parent);
+        return -1;
+    }
+
+    int data_block = alloc();
+    if(data_block == -1){
+        iput(new_inode);
+        iput(parent);
+        return -1;
+    }
+
+    unsigned char block[BLOCK_SIZE] = {0};
+
+    // Add first entry
+    write_u16(block+0, new_inode->inode_num);
+    strcpy((char *)(block + FREE_MAP_BLOCK), ".");
+
+    // Add second entry
+    write_u16(block+DIR_ENTRY_SIZE, new_inode->inode_num);
+    strcpy((char *)(block + FREE_MAP_BLOCK + DIR_ENTRY_SIZE), "..");
+
+    new_inode->flags = 2;
+    new_inode->size = DIR_ENTRY_SIZE * 2;
+    new_inode->block_ptr[0] = data_block;
+
+    bwrite(data_block, block);
+
+    int offset = parent->size;
+    int block_index = offset / BLOCK_SIZE;
+    int offset_in_block = offset % BLOCK_SIZE;
+    int parent_block = parent->block_ptr[block_index];
+
+    unsigned char parent_buf[BLOCK_SIZE] = {0};
+    bread(parent_block, parent_buf);
+
+    write_u16(parent_buf+offset_in_block, new_inode->inode_num);
+    strcpy((char *)(parent_buf + FREE_MAP_BLOCK + offset_in_block), dirname);
+    bwrite(parent_block, parent_buf);
+
+    // Clean-Up
+    parent->size += DIR_ENTRY_SIZE;
+    iput(parent);
+    iput(new_inode);
+
+    return 0;
 }

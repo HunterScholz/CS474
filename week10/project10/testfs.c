@@ -198,6 +198,37 @@ void test_dir(void){
     directory_close(dir);
 }
 
+void test_namei(void){
+    mkfs();
+
+    CTEST_ASSERT(namei("/foo") == NULL, "missing directory");
+    CTEST_ASSERT(directory_make("/foo") == 0, "created foo directory");
+
+    struct inode *root = namei("/");
+
+    CTEST_ASSERT(root->inode_num == 0, "found root inode");
+
+    iput(root);
+}
+
+void test_dir_make(void){
+    mkfs();
+    directory_make("/foo");
+
+    struct inode *foo = namei("/foo");
+    struct directory *dir = directory_open(foo->inode_num);
+    struct directory_entry ent;
+    
+    directory_get(dir, &ent);
+    CTEST_ASSERT(strcmp(ent.name, ".") == 0, "current dir entry");
+
+    directory_get(dir, &ent);
+    CTEST_ASSERT(strcmp(ent.name, "..") == 0, "parent dir entry");
+
+    directory_close(dir);
+    iput(foo);
+}
+
 int main(void){
     CTEST_VERBOSE(1);
 
@@ -216,6 +247,9 @@ int main(void){
     // ls();
     test_mkfs();
     test_dir();
+
+    test_namei();
+    test_dir_make();
 
     // Finish Testing
     CTEST_RESULTS();
